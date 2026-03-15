@@ -1,0 +1,117 @@
+---
+title: "Testing MDX Features: A Comprehensive Guide"
+date: "2026-03-25"
+description: "A deep dive into testing various MDX features supported by our Next.js blog engine, including code blocks, images, and formatting."
+author: "Alex Developer"
+coverImage: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop"
+category: "Tests"
+---
+
+Welcome to this comprehensive test of our MDX blog engine. We'll be pushing the limits of markdown parsing, verifying code syntax highlighting across multiple languages, and testing responsive image rendering directly within the content.
+
+## Main Content Image
+
+Below is a main article image, rendered using our natively mapped Next.js `<Image />` component to ensure optimal loading, compression, and responsive sizing.
+
+<Image 
+  src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop" 
+  alt="Developer workspace with laptop" 
+  width={1200} 
+  height={675} 
+  className="object-cover w-full rounded-2xl my-8 border border-neutral-800 shadow-xl"
+/>
+
+## Code Snippets in Multiple Languages
+
+Our MDX engine is configured to flawlessly parse different fenced code blocks. It extracts the language perfectly, styling them dynamically with our custom terminal-inspired `<CodeBlock />` components. Let's see how it handles a few different syntax examples across the backend ecosystem.
+
+### Python Example
+
+This is a fast API endpoint demonstrating modern Python 3 syntax with type hints:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    price: float
+    is_offer: bool = None
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+@app.post("/items/")
+def create_item(item: Item):
+    return {"name": item.name, "price": item.price}
+```
+
+### Rust Example
+
+Rust code, focusing on its memory safety and pattern matching features:
+
+```rust
+fn main() {
+    let number = 13;
+
+    println!("Tell me about {}", number);
+    match number {
+        1 => println!("One!"),
+        2 | 3 | 5 | 7 | 11 => println!("This is a prime number"),
+        13..=19 => println!("A teen"),
+        _ => println!("Ain't special"),
+    }
+}
+```
+
+### GoLang Example
+
+A standard minimalist HTTP server in Go showcasing its concurrency model:
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+)
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+}
+
+func main() {
+    http.HandleFunc("/", helloHandler)
+    
+    fmt.Println("Server is running on port 8080...")
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+## Sub-images in a Grid Layout
+
+MDX grants us absolute freedom. We can use standard HTML `<div>` structures and raw Tailwind CSS styling classes to inject complex flex/grid layouts without breaking the markdown! Here is a grid containing smaller side-by-side sub-images.
+
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-10">
+  <Image 
+    src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop" 
+    alt="Programming syntax on a screen" 
+    width={600} 
+    height={400} 
+    className="object-cover w-full h-[300px] rounded-xl border border-neutral-800 shadow-md group-hover:scale-105 transition-transform"
+  />
+  <Image 
+    src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop" 
+    alt="Close up of a mechanical keyboard" 
+    width={600} 
+    height={400} 
+    className="object-cover w-full h-[300px] rounded-xl border border-neutral-800 shadow-md group-hover:scale-105 transition-transform"
+  />
+</div>
+
+## Conclusion
+
+By meticulously mixing native Markdown spacing constraints, raw HTML layouts, and high-performance React primitives (like Next.js's native Image optimization logic), MDX provides the absolute best framework for developers who want to write deeply engaging content without ever having to manage a traditional cumbersome CMS!
