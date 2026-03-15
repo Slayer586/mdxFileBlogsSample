@@ -1,0 +1,120 @@
+---
+title: "Querying and Performing Transactions Across Multiple Database Schemas in a Modular Monolith"
+date: "2026-03-10"
+description: "Query data across schemas in .NET Modular Monolith without breaking module boundaries. Explore proven approaches including inter-module APIs."
+author: "Anton Martyniuk"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: "Architecture"
+---
+
+<Image 
+  src="https://antondevtips.com/media/covers/architecture/cover_architecture_mm_multiple_db_schemas.png" 
+  alt="Cover Image explicitly sized using Next.js Image component" 
+  width={1200} 
+  height={630}
+  priority
+/>
+
+Building a [Modular Monolith](#) gives you clear boundaries between modules, but it also introduces a challenge: how do you query data that lives in different schemas? And how do you maintain data consistency when a business operation spans multiple modules?
+
+
+In a traditional monolith, you could join tables across the database. But in a Modular Monolith, each module owns its schema. Direct database access between modules breaks the boundaries you worked hard to establish.
+
+I have been working with Modular Monoliths for years, and I have seen teams struggle with this exact problem. They start with good boundaries, create separate schemas for each module, but then they need to show a report that combines data from three different modules. What do they do?
+
+Some teams give up and start querying across schemas directly. Others try to solve it with complex event chains that are hard to debug. And some just avoid the problem altogether by keeping everything in one module.
+
+But there is a better way. Today, I want to show you proven approaches for querying data across schemas and strategies for managing transactions in a Modular Monolith.
+
+In this post, we will explore:
+- Why You Can't Join Tables Across Multiple Schemas
+- Recommended Approaches for Cross-Schema Queries
+  - Inter-module API Calls
+  - Domain Events with Eventual Consistency
+
+Let's dive in!
+
+## Why You Can't Join Tables Across Multiple Schemas
+
+Each module has its own database schema and DbContext in EF Core. This separation is intentional. It enforces boundaries and makes it possible to extract a module into a microservice later.
+
+But this separation creates two main challenges:
+1. You cannot simply join tables across schemas in your queries. 
+2. You cannot use a single database transaction that spans multiple modules.
+
+Imagine you need to build a dashboard that shows:
+- All shipments created today
+- The carrier assigned to each shipment
+- Current stock levels for products in those shipments
+
+In a traditional Monolith, you might write something like this:
+
+```csharp
+var dashboard = await context.Shipments
+    .Include(s => s.Stocks)
+    .Include(s => s.Carriers)
+    .Where(s => s.CreatedAt.Date == DateTime.UtcNow.Date)
+    .Select(x => new
+    {
+        ShipmentNumber = x.Number,
+        CarrierName = x.Carrier.Name,
+        StockLevel = x.Stocks.First().Quantity
+    })
+    .ToListAsync();
+```
+
+But in a Modular Monolith, this code will not work. The `ShipmentsDbContext` does not know about `Carriers` or `Stocks` entities. They live in different schemas with different DbContexts.
+
+## Recommended Approaches for Cross-Schema Queries
+
+### Inter-module API Calls
+
+The most straightforward approach is to call other modules through their public APIs. Each module exposes an interface that other modules can use to query data. This approach is the simplest and the cheapest. It respects module boundaries and makes dependencies explicit.
+
+The `Carriers` module exposes a public API:
+
+```csharp
+public interface ICarrierModuleApi
+{
+    Task<CarrierDetailsResponse?> GetCarrierByNameAsync(
+        string carrierName,
+        CancellationToken cancellationToken = default);
+}
+```
+
+Now in the `Shipments` module, you can create a handler that combines data from multiple modules:
+
+```csharp
+internal sealed class GetShipmentDetailsHandler(
+    ShipmentsDbContext context,
+    ICarrierModuleApi carrierApi,
+    IStockModuleApi stockApi)
+{
+    public async Task<ErrorOr<ShipmentDetailsResponse>> HandleAsync(
+        string shipmentNumber,
+        CancellationToken cancellationToken)
+    {
+        // 1. Get shipment from the local database
+        var shipment = await context.Shipments
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(s => s.Number == shipmentNumber, cancellationToken);
+            
+        // ...
+        
+        // 2. Get carrier details from the Carriers module
+        var carrierDetails = await carrierApi.GetCarrierByNameAsync(
+            shipment.Carrier, cancellationToken);
+            
+        // ... (return combined model)
+    }
+}
+```
+
+**This approach has several advantages:**
+- Clear boundaries
+- Type safety
+- Easy to test
+
+---
+
+*(This content is adapted from Anton Martyniuk's blog to demonstrate MDX parsing in Next.js Serverless deployments).*

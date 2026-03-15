@@ -1,0 +1,31 @@
+---
+title: "My First MDX Blog Post"
+date: "2026-03-15"
+description: "Exploring the power of serverless MDX blogs with Next.js."
+author: "Sagar"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: "Databases"
+---
+
+# Welcome to Serverless MDX!
+
+This is my very first blog post written in **MDX**.
+
+With MDX, we can use React components right inside our Markdown files! 
+
+<div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 my-6">
+  <h3 className="text-blue-400 font-bold m-0 p-0 text-xl">React Component inside Markdown!</h3>
+  <p className="m-0 pt-2 text-blue-200">This banner is just standard HTML/React JSX injected straight into the .mdx file.</p>
+</div>
+
+## The Proof of Concept
+
+This setup avoids needing a database. Whenever I push a new `.mdx` file to my GitHub repository, the deployment server (like Vercel or Netlify) detects the change, rebuilds the site, and the new blog post appears instantly.
+
+**Why is this amazing?**
+- 🚀 Extremely Fast: Pre-rendered to static paths.
+- 💾 No Database Required: Your codebase is your CMS.
+- 🛠️ Developer Friendly: Write your posts in your IDE.
+- 🎨 Powerful: Need an interactive chart in a post? Just import the component!
+
+> "Serverless blogs are the future for developers who want ultimate control over their content without the overhead of maintaining a database."

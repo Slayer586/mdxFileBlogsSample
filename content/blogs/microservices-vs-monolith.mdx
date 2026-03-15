@@ -1,0 +1,43 @@
+---
+title: "Microservices vs Modular Monolith: Choosing the Right Architecture"
+date: "2026-03-12"
+description: "Before jumping into microservices, consider if a modular monolith is a better fit. An in-depth look at the tradeoffs and migration paths."
+author: "Alex Developer"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: "Architecture"
+---
+
+<Image 
+  src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" 
+  alt="Abstract representation of connected services" 
+  width={1200} 
+  height={630}
+  priority
+/>
+
+The debate between Microservices and the Monolith has raged for over a decade. But recently, a middle ground has emerged as the practical favorite for many organizations: the **Modular Monolith**.
+
+## The Microservices Premium
+Microservices offer independent deployability, separate scaling, and technology heterogeneity. But they come with a hefty "premium":
+- Network latency between calls
+- Complex distributed tracing
+- Eventual consistency headaches
+- Infrastructure overhead
+
+```typescript
+// In a distributed system, a simple call becomes complex
+async function createOrder(orderPayload) {
+  // 1. HTTP call to inventory service
+  // 2. HTTP call to payment service
+  // 3. Compensation logic if payment fails after inventory reserved
+  // This requires a saga or process manager!
+}
+```
+
+## The Modular Monolith Approach
+A modular monolith keeps the deployment unit as a single application, but enforces strict boundaries in the codebase. You get the simplicity of a single database transaction and local method calls, while preventing "spaghetti code."
+
+### How to Enforce Boundaries
+You can use tools like Dependency Injection and architectural fitness functions (like ArchUnit in Java, or NetArchTest in .NET) to ensure that modules only communicate through defined API interfaces.
+
+If you ever need to scale a specific module independently, the strict boundaries make it trivial to extract that module into its own microservice later. 

@@ -1,0 +1,43 @@
+---
+title: "Serverless Next.js Scaling at the Edge: Performance Deep Dive"
+date: "2026-03-14"
+description: "How Edge Functions and ISR (Incremental Static Regeneration) change the way we serve Dynamic React apps."
+author: "Sam Next"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: "ASP.NET Core"
+---
+
+<Image 
+  src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop" 
+  alt="Cyber security matrix, representing edge clusters" 
+  width={1200} 
+  height={630}
+  priority
+/>
+
+Deploying Next.js applications on platforms like Vercel introduces powerful edge-computing workflows. Next.js natively abstracts complex infrastructure to automatically configure edge regions nearest to your users. 
+
+## Edge Middleware
+
+Middleware allows you to run code before a request completes, making it perfect for instantaneous routing without a cold start:
+
+```javascript
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  // Edge code runs instantaneously at global CDNs
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const auth = request.cookies.get('token')
+    if (!auth) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+}
+```
+
+## Serverless Hosting
+
+When building apps with Next.js App Router, combining Server Components with Server Actions means you essentially build your frontend and backend as a single deployable asset.
+
+Instead of paying for idle Docker containers, Vercel hosts route handlers as serverless functions. They scale from zero to infinite exactly in tandem with user requests, avoiding infrastructure sprawl and lowering costs for growing products!

@@ -1,0 +1,46 @@
+---
+title: "GraphQL API Design: Eliminating Overfetching in the Frontend"
+date: "2026-03-16"
+description: "Why switch from REST to GraphQL? Empower your UI clients with declarative data fetching and understand Resolvers vs Endpoints."
+author: "Tim Graph"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: "Tests"
+---
+
+<Image 
+  src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=1200&auto=format&fit=crop" 
+  alt="Graph of connected dots representing Nodes and Edges" 
+  width={1200} 
+  height={630}
+  priority
+/>
+
+The most common complaint from frontend engineers interacting with massive REST APIs is **overfetching** and **underfetching**. You might request `/api/users/12` just to get the username, but you forcefully receive their entire payload of addresses, emails, and nested metadata.
+
+Then you underfetch! To list their posts, you fire a second request to `/api/users/12/posts`, establishing a classic `n+1` round trip to the server.
+
+## Enter GraphQL
+
+GraphQL is a strongly typed query language that acts as an orchestration layer in the backend. Rather than explicitly formatting the final JSON per endpoint, your backend defines a Graph Schema. 
+
+The clients define entirely what shape they want the response to take!
+
+```graphql
+query UserDashboard {
+  user(id: "12") {
+    username
+    posts(limit: 5) {
+      title
+      comments {
+        text
+      }
+    }
+  }
+}
+```
+
+The server returns exactly that structure, reducing network payload and saving round trips!
+
+### Addressing the N+1 Backend Problem
+
+While GraphQL pushes complexity to the backend, it also introduces its own N+1 problem on the dataloader level. Every field resolves independently. Backend developers must batch query responses using tools like `DataLoader` in Node or Prisma in order to optimize SQL queries to the database!

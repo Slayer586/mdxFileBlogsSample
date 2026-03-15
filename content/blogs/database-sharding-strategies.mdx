@@ -1,0 +1,35 @@
+---
+title: "Database Sharding: Scaling PostgreSQL for Modern Traffic"
+date: "2026-03-15"
+description: "Master vertical versus horizontal scaling in SQL. Deep dive into sharding architecture, hashing keys, and managing large datasets."
+author: "Mark Schema"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: ".NET"
+---
+
+<Image 
+  src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop" 
+  alt="Glowing server rack representing massive data sharding" 
+  width={1200} 
+  height={630}
+  priority
+/>
+
+When a single RDBMS node maxes out its CPU, RAM, and Disk IO limits, you enter the painful realm of horizontal database scaling. In this article, we'll explain database **sharding**.
+
+## Vertical vs. Horizontal Scaling
+Vertical scaling (buying a bigger server) works for a long time, but eventually becomes too expensive or impossible due to hardware limits. Horizontal scaling (adding more instances) shifts the load across a multi-node cluster.
+
+### Sharding Keys
+A shard key dictates which row of a table goes to which database node. If you chose a bad shard key, one node gets 90% of your writes, creating a "hot shard."
+
+If you pick `User ID` as the shard key, it spreads users evenly across servers:
+
+```sql
+-- Node A handles Users 1 - 50,000
+-- Node B handles Users 50,001 - 100,000
+SELECT * FROM orders WHERE user_id = 45000;
+-- The query router knows this goes to Node A!
+```
+
+Sharding introduces complexity. Relational constraints (like Foreign Keys) and JOIN operations across multiple shards become extraordinarily complicated, often forcing you to do those operations in the application code instead of the database engine!

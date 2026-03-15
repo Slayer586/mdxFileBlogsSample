@@ -1,0 +1,31 @@
+---
+title: "The Second Step: Expanding with MDX"
+date: "2026-03-20"
+description: "How Next.js dynamic routing powers the serverless MDX."
+author: "Sagar"
+coverImage: "/photos/cover_architecture_mm_multiple_db_schemas.webp"
+category: ".NET"
+---
+
+# Expanding on Next.js MDX
+
+Once you grasp the basics of MDX, dynamic routing in Next.js is where the true power is unleashed.
+
+In standard React, you might need complex logic to map IDs to components. Here, you just create a folder `app/blog/[slug]` and dynamically match the URL to the MDX file inside `content/blogs/[slug].mdx`.
+
+### Using Components
+You can easily extend an MDX setup by passing in components. 
+
+```tsx
+import { MDXRemote } from 'next-mdx-remote/rsc'
+
+const components = {
+  h1: (props) => <h1 className="text-4xl font-extrabold" {...props} />
+}
+
+export default function Page({ source }) {
+  return <MDXRemote source={source} components={components} />
+}
+```
+
+This transforms ordinary markdown into a completely custom styled block. Notice that there's no runtime overhead from a database, it's remarkably fast.
