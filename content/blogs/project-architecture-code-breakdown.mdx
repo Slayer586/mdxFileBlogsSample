@@ -1,0 +1,162 @@
+---
+title: "Project Architecture: Building a Serverless MDX Blog with Next.js"
+date: "2026-03-30"
+description: "A complete architectural breakdown of how we built this statically generated, Markdown-driven blog using Next.js App Router, Server Components, and Tailwind CSS."
+author: "Engineering Team"
+coverImage: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop"
+category: "Architecture"
+---
+
+This document serves as a comprehensive technical overview and engineering handover for our new Serverless MDX Blog platform. Instead of relying on a heavy Database or a headless CMS, this entire project is statically generated directly from local Markdown files seamlessly mixed with React components (MDX). 
+
+This guide will break down the exact flow of data, the key files responsible for the architecture, and how everything is tied together for production deployment on Vercel.
+
+---
+
+## 1. High-Level Architecture Overview
+
+The blog utilizes the **Next.js App Router** paradigm, heavily leaning on React Server Components (RSC) to guarantee blistering fast load times. We use **Static Site Generation (SSG)**; when `npm run build` is executed, Next.js crawls all of our `.mdx` files and compiles them into static HTML/CSS, removing the need for a backend server to render pages per-user.
+
+### The Data Flow
+
+1. **Content Creation**: Authors write `.mdx` files in the `content/blogs/` directory. They add "Frontmatter" (YAML-like metadata at the top of the file) for the Title, Date, Category, and Cover Image.
+2. **Data Parsing (`src/lib/mdx.ts`)**: A Node.js utility script reads the file system, parses the Frontmatter, and prepares arrays of blog objects.
+3. **The Index Page (`src/app/page.tsx`)**: Fetches the list of blogs from the parser on the server, and hands them off to the interactive Client Component.
+4. **Client-Side Rendering (`src/components/BlogList.tsx`)**: Handles real-time search, category filtering, and pagination without reloading the page.
+5. **Dynamic Routing (`src/app/blog/[slug]/page.tsx`)**: Matches the URL to the corresponding `.mdx` file, parses the Markdown into native React elements, and displays the full article.
+
+---
+
+## 2. Reading the File System: `src/lib/mdx.ts`
+
+This is the brain of our data layer. Because we don't have a database, we use Node.js's native `fs` (File System) module to scan the `content/blogs` directory.
+
+We utilize a library called `gray-matter` to cleanly separate the **Frontmatter Metadata** from the actual Markdown body.
+
+```typescript
+// Core logic inside src/lib/mdx.ts
+export function getBlogs(): BlogMetadata[] {
+  // 1. Read the directory
+  const files = fs.readdirSync(blogsDirectory);
+
+  // 2. Loop through all .mdx files
+  const blogs = files
+    .filter((fileName) => fileName.endsWith('.mdx'))
+    .map((fileName) => {
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      
+      // 3. Extract frontmatter using gray-matter
+      const { data } = matter(fileContent);
+
+      return {
+        ...(data as Omit<BlogMetadata, 'slug'>),
+        slug: fileName.replace('.mdx', ''), // Create URL slug from filename
+      };
+    })
+    // 4. Sort chronologically by date
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return blogs;
+}
+```
+
+This single function powers the entire homepage by delivering an array of all available blogs. It also exports a `getBlogBySlug(slug)` function, which retrieves a specific post based on its URL.
+
+---
+
+## 3. The Interactive Dashboard: `<BlogList />`
+
+Next.js 14 defaults to Server Components. However, because our homepage allows users to **Search** and select **Categories** interactively, we had to isolate that interactivity into a Client Component.
+
+The file `src/components/BlogList.tsx` begins with the `'use client'` directive. It accepts the `initialBlogs` array processed by the server, and uses React State to manage the UI:
+
+```tsx
+'use client';
+
+export default function BlogList({ initialBlogs }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Recent');
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Real-time filtering logic
+  const filteredBlogs = initialBlogs.filter((blog) => {
+    const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = activeCategory === 'Recent' || blog.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Pagination Slice
+  const currentBlogs = filteredBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
+
+  return (
+      // ... Renders the beautifully styled Card Grids via Tailwind CSS ...
+  )
+}
+```
+
+By decoupling the `BlogList` from the server fetching logic in `page.tsx`, we get the SEO benefits of server-rendering but the snappy, reload-free interactions of a React Single Page Application (SPA).
+
+---
+
+## 4. Dynamic Pages & MDX Compilation
+
+When a user clicks a blog card (e.g., `/blog/my-first-post`), they hit `src/app/blog/[slug]/page.tsx`.
+
+This is a dynamic route. Next.js passes the `[slug]` from the URL as a parameter. The logic here is breathtakingly efficient:
+
+1. It calls `getBlogBySlug(slug)` to read the requested `.mdx` file.
+2. It uses `next-mdx-remote/rsc` (React Server Components compiler) to convert the raw markdown string into a DOM tree of React Components.
+
+### Custom MDX Components
+
+Markdown natively outputs plain HTML standard tags like `<img>` or `<pre>`. However, plain HTML isn't optimized! We overwrite Markdown's default behavior by mapping standard tags to our deeply optimized Next.js equivalents:
+
+```tsx
+// Inside src/app/blog/[slug]/page.tsx
+const CustomComponents = {
+  // Overwrite markdown `<img>` with Next.js `<Image>` for Auto-Compression
+  Image: (props: any) => (
+    <span className="my-10 flex justify-center w-full">
+      <Image 
+        {...props} 
+        width={props.width || 1200} 
+        height={props.height || 630} 
+        className="rounded-xl object-contain..." 
+      />
+    </span>
+  ),
+  
+  // Overwrite markdown code blocks with our custom syntax highlighter
+  pre: (props: any) => <CodeBlock {...props} />,
+};
+
+export default function BlogPost({ params }) {
+  const blog = getBlogBySlug(params.slug);
+  
+  return (
+    <article>
+      {/* Compile the markdown and inject our components! */}
+      <MDXRemote source={blog.content} components={CustomComponents} />
+    </article>
+  )
+}
+```
+
+This ensures that whenever an author puts `<Image src="..." />` or a Markdown Code Block block into an `.mdx` file, they aren't just getting raw HTML—they are launching complex, optimized React components explicitly governed by our architecture.
+
+---
+
+## 5. Build Time Magic (`generateStaticParams`)
+
+If you look closely at the bottom of `src/app/blog/[slug]/page.tsx`, you will see a function called `generateStaticParams()`.
+
+Before Next.js builds the app, it runs this function. It grabs *all* the slugs (filenames). It then proceeds to loop through every single blog and explicitly build a static HTML page for it *in the cloud* before the user ever requests it. Because doing this, when Vercel deploys the app, there is zero processing overhead—users are just securely served static lightning-fast documents globally.
+
+## Summary
+
+* Authored entirely in **Markdown MDX**, giving editors total control over formatting without a CMS.
+* Handled by **Node.js File System scripts** instead of a SQL Database.
+* Dynamically rendered on the server, but transformed into static HTML via **Next.js SSG**.
+* Fully styled via utility classes precisely mapped in **Tailwind CSS**. 
+
+This system provides immense flexibility, low latency, and infinite scalability, resulting in perfect Lighthouse scores.
